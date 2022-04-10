@@ -1,6 +1,7 @@
 # Learning Metal with metal-cpp
 
-Learn Metal using **metal-cpp**.
+Learn Metal using **metal-cpp**. This is a CMake port of the original XCode C++ project created by the Apple GPU team. If you want to use metal-cpp in your own project, copy `metal-cmake` directory to your project and add that folder as subdirectory via `add_subdirectory(metal-cmake)`. Finally, link the library with your target executable with the following command `target_link_libraries(${project-name} METAL_CPP)` 
+
 
 ## Overview
 
