@@ -16,17 +16,17 @@ This README presents how to build the project and describes how each sample acco
 
 The project demonstrates how to incrementally achieve the following tasks:
 
-* 00 - window : Create a Window for Metal Rendering
-* 01 - primitive : Render a Triangle
-* 02 - argbuffers : Store Shader Arguments in a Buffer
-* 03 - animation : Animate Rendering
-* 04 - instancing : Draw Multiple Instance of an Object
-* 05 - perspective : Render 3D with Perspective Projection
-* 06 - lighting : Light Geometry
-* 07 - texturing : Texture Triangles
-* 08 - compute : Use the GPU for General Purpose Computation
-* 09 - compute-to-render : Render the Results of a Compute Kernel
-* 10 - frame-debugging : Capture GPU Commands for Debugging
+* [00 - window : Create a Window for Metal Rendering](#sample-0-create-a-window-for-metal-rendering)
+* [01 - primitive : Render a Triangle](#sample-1-render-a-triangle)
+* [02 - argbuffers : Store Shader Arguments in a Buffer](#sample-2-store-shader-arguments-in-a-buffer)
+* [03 - animation : Animate Rendering](#sample-3-animate-rendering)
+* [04 - instancing : Draw Multiple Instance of an Object](#sample-4-draw-multiple-instances-of-an-object)
+* [05 - perspective : Render 3D with Perspective Projection](#sample-5-render-3d-with-perspective-projection)
+* [06 - lighting : Light Geometry](#sample-6-light-geometry)
+* [07 - texturing : Texture Triangles](#sample-7-texture-surfaces)
+* [08 - compute : Use the GPU for General Purpose Computation](#sample-8-use-the-gpu-for-general-purpose-computation)
+* [09 - compute-to-render : Render the Results of a Compute Kernel](#sample-9-mix-compute-with-rendering)
+* [10 - frame-debugging : Capture GPU Commands for Debugging](#sample-10-capture-gpu-commands-for-debugging)
 
 ## Dependencies
 
