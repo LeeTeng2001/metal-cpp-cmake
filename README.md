@@ -16,17 +16,17 @@ This README presents how to build the project and describes how each sample acco
 
 The project demonstrates how to incrementally achieve the following tasks:
 
-* 00 - window : Create a Window for Metal Rendering
-* 01 - primitive : Render a Triangle
-* 02 - argbuffers : Store Shader Arguments in a Buffer
-* 03 - animation : Animate Rendering
-* 04 - instancing : Draw Multiple Instance of an Object
-* 05 - perspective : Render 3D with Perspective Projection
-* 06 - lighting : Light Geometry
-* 07 - texturing : Texture Triangles
-* 08 - compute : Use the GPU for General Purpose Computation
-* 09 - compute-to-render : Render the Results of a Compute Kernel
-* 10 - frame-debugging : Capture GPU Commands for Debugging
+* [00 - window : Create a Window for Metal Rendering](#sample-0-create-a-window-for-metal-rendering)
+* [01 - primitive : Render a Triangle](#sample-1-render-a-triangle)
+* [02 - argbuffers : Store Shader Arguments in a Buffer](#sample-2-store-shader-arguments-in-a-buffer)
+* [03 - animation : Animate Rendering](#sample-3-animate-rendering)
+* [04 - instancing : Draw Multiple Instance of an Object](#sample-4-draw-multiple-instances-of-an-object)
+* [05 - perspective : Render 3D with Perspective Projection](#sample-5-render-3d-with-perspective-projection)
+* [06 - lighting : Light Geometry](#sample-6-light-geometry)
+* [07 - texturing : Texture Triangles](#sample-7-texture-surfaces)
+* [08 - compute : Use the GPU for General Purpose Computation](#sample-8-use-the-gpu-for-general-purpose-computation)
+* [09 - compute-to-render : Render the Results of a Compute Kernel](#sample-9-mix-compute-with-rendering)
+* [10 - frame-debugging : Capture GPU Commands for Debugging](#sample-10-capture-gpu-commands-for-debugging)
 
 ## Dependencies
 
@@ -57,7 +57,7 @@ The `00-window` sample shows how to create a macOS application with a window cap
 
 The program starts in the `main` function.
 
-``` other
+``` cpp
 MyAppDelegate del;
 
 NS::Application* pSharedApplication = NS::Application::sharedApplication();
@@ -71,7 +71,7 @@ The notification of this event arrives in the `applicationDidFinishLaunching()` 
 
 The sample uses the `MTK::View` class to display Metal content in a window. `MTK::View` also provides a runtime loop that triggers rendering at a regular cadence. The `applicationDidFinishLaunching()` method initializes the view with a `CGRect` describing its dimensions and a `MTL::Device` object, a software representation of the system's GPU. This method also specifies a pixel format for the view's drawable render target and sets a color with which to clear the drawable each frame.
 
-``` other
+``` cpp
 _pMtkView = MTK::View::alloc()->init( frame, _pDevice );
 _pMtkView->setColorPixelFormat( MTL::PixelFormat::PixelFormatBGRA8Unorm_sRGB );
 _pMtkView->setClearColor( MTL::ClearColor::Make( 1.0, 0.0, 0.0, 1.0 ) );
@@ -79,14 +79,14 @@ _pMtkView->setClearColor( MTL::ClearColor::Make( 1.0, 0.0, 0.0, 1.0 ) );
 
 The method also sets an instance of the `MyMTKViewDelegate` class as a delegate.
 
-``` other
+``` cpp
 _pViewDelegate = new MyMTKViewDelegate( _pDevice );
 _pMtkView->setDelegate( _pViewDelegate );
 ```
 
 `MyMTKViewDelegate` is a subclass of the `MTK::ViewDelegate` class. `MTK::ViewDelegate` provides an interface to which the `MTK::View` can forward events. By overriding the virtual functions of its parent class, `MyMTKViewDelegate` can respond to these events. `MTK::View` calls the `drawInMTKView()` method each frame allowing the app to update any rendering.
 
-``` other
+``` cpp
 void MyMTKViewDelegate::drawInMTKView( MTK::View* pView )
 {
     _pRenderer->draw( pView );
@@ -95,7 +95,7 @@ void MyMTKViewDelegate::drawInMTKView( MTK::View* pView )
 
 `drawInMTKView()` simply calls the `Renderer` class's `draw()` method.  The `draw()` method performs the minimal work necessary to clear the view's color.
 
-``` other
+``` cpp
 MTL::CommandBuffer* pCmd = _pCommandQueue->commandBuffer();
 MTL::RenderPassDescriptor* pRpd = pView->currentRenderPassDescriptor();
 MTL::RenderCommandEncoder* pEnc = pCmd->renderCommandEncoder( pRpd );
@@ -125,7 +125,7 @@ Shaders are small programs that specify the GPU's operation. The vertex shader s
 
 Metal uses a special-purpose language called the *Metal Shading Language* (MSL) to specify the vertex and fragment shaders. MSL is a derivative of C++ 14 which depends on a number of attribute specifiers to specify how Metal can interpret the language for execution on a GPU. A Metal Xcode project typically has a number of *.metal* source files containing MSL programs. Xcode would compile these *.metal* files along with the rest of the project's source code at build tine. However, for simplicity, this sample directly provides the shader source as a string embedded in the code. Using this string, the renderer creates a `MTL::Library` object.
 
-``` other
+``` cpp
 MTL::Library* pLibrary = _pDevice->newLibrary( NS::String::string(shaderSrc, UTF8StringEncoding), nullptr, &pError );
 if ( !pLibrary )
 {
@@ -141,7 +141,7 @@ This builds an intermediate representation of the shader code. Then the renderer
 
 Next, the renderer creates an `MTL::RenderPipelineDescriptor` object to designate the two shaders the pipeline should use. It also specifies the pixel format used by `MTK::View`.
 
-``` other
+``` cpp
 MTL::RenderPipelineDescriptor* pDesc = MTL::RenderPipelineDescriptor::alloc()->init();
 pDesc->setVertexFunction( pVertexFn );
 pDesc->setFragmentFunction( pFragFn );
@@ -150,7 +150,7 @@ pDesc->colorAttachments()->object(0)->setPixelFormat( MTL::PixelFormat::PixelFor
 
 With the descriptor object, the renderer uses the `MTL::Device` object to create a concrete `MTL::RenderPipelineState` object via the `newRenderPipelineState()` method.
 
-``` other
+``` cpp
 _pPSO = _pDevice->newRenderPipelineState( pDesc, &pError );
 if ( !_pPSO )
 {
@@ -165,7 +165,7 @@ The renderer also specifies a position and color for each vertex of the triangle
 
 Buffers are unstructured memory allocations accessible by the GPU. An app can interpret buffer data however it likes. In the sample, the renderer uses two buffers to pass vertex data to the vertex shader. The first buffer stores an array of three `sims::float3` vectors, which specify the 3D positions of the vertices. The second buffer also stores an array of three `simd::float3` vectors, which specify RGB color values for each vertex.
 
-``` other
+``` cpp
 simd::float3 positions[NumVertices] =
 {
     { -0.8f,  0.8f, 0.0f },
@@ -183,7 +183,7 @@ simd::float3 colors[NumVertices] =
 
 The renderer creates buffer objects to store each of these arrays.
 
-``` other
+``` cpp
 const size_t positionsDataSize = NumVertices * sizeof( simd::float3 );
 const size_t colorDataSize = NumVertices * sizeof( simd::float3 );
 
@@ -196,7 +196,7 @@ _pVertexColorsBuffer = pVertexColorsBuffer;
 
 The renderer creates these buffers using `MTL::ResourceStorageModeManaged`. This indicates that both the CPU and GPU can directly access the contents of the buffer. This allows the renderer to fill the buffers' contents with the arrays by calling `memcpy()`.
 
-``` other
+``` cpp
 memcpy( _pVertexPositionsBuffer->contents(), positions, positionsDataSize );
 memcpy( _pVertexColorsBuffer->contents(), colors, colorDataSize );
 
@@ -208,7 +208,7 @@ The renderer indicates to Metal that the CPU has written data to the buffer cont
 
 Once the renderer creates the render pipeline and buffer objects, it can begin encoding commands to draw the triangle. This sample extends upon the previous sample's `draw()` function by explicitly encoding commands to do this.
 
-``` other
+``` cpp
 MTL::RenderCommandEncoder* pEnc = pCmd->renderCommandEncoder( pRpd );
 
 pEnc->setRenderPipelineState( _pPSO );
@@ -223,7 +223,7 @@ After the function creates the render command encoder, it calls the encoder's `s
 
 In the vertex shader function, the `positions` and `colors`  parameters use the `[[buffer(0)]]` and `[[buffer(1)]]` attributes. The sample calls `setVertexBuffer()` using the indices declared with these attributes to pass the buffers to these parameters.
 
-``` other
+``` cpp
 v2f vertex vertexMain( uint vertexId [[vertex_id]],
                        device const float3* positions [[buffer(0)]],
                        device const float3* colors [[buffer(1)]] )
@@ -239,33 +239,33 @@ This sample extends upon the `buildBuffers()` method and builds an argument buff
 
 The renderer must first create an argument encoder from one of the parameters of the shader. It does this by calling the shader function's `newArgumentEncoder()` method with the index of the buffer parameter it wishes to encode.
 
-``` other
+``` cpp
 MTL::Function* pVertexFn = _pShaderLibrary->newFunction( NS::String::string( "vertexMain", UTF8StringEncoding ) );
 MTL::ArgumentEncoder* pArgEncoder = pVertexFn->newArgumentEncoder( 0 );
 ```
 
 The encoder object interprets a parameter's memory requirements and layout based on the parameter's type. Using the value returned by the encoder's `encodedLength()` method, the renderer creates an argument buffer. This ensures the buffer is large enough to encode arguments into.
 
-``` other
+``` cpp
 MTL::Buffer* pArgBuffer = _pDevice->newBuffer( pArgEncoder->encodedLength(), MTL::ResourceStorageModeManaged );
 ```
 
 The renderer then binds the argument buffer to the argument encoder via the `setArgumentBuffer()` method. This specifies the destination to which the encoder writes the object references.
 
-``` other
+``` cpp
 pArgEncoder->setArgumentBuffer( _pArgBuffer, 0 );
 ```
 
 With the buffer objects created and set, the renderer encodes references to the position data in index `0` and to the color data in  index `1`.
 
-``` other
+``` cpp
 pArgEncoder->setBuffer( _pVertexPositionsBuffer, 0, 0 );
 pArgEncoder->setBuffer( _pVertexColorsBuffer, 0, 1 );
 ```
 
 The indices used with `setBuffer()` correspond to numbers used with the `[[id()]]` attribute specifier in the shader code.
 
-``` other
+``` cpp
 struct VertexData
 {
     device float3* positions [[id(0)]];
@@ -275,7 +275,7 @@ struct VertexData
 
 With the buffers ready, the renderer can begin encoding render commands. First, it makes the argument buffer available to the vertex shader.
 
-``` other
+``` cpp
 pEnc->setVertexBuffer( _pArgBuffer, 0, 0 );
 pEnc->useResource( _pVertexPositionsBuffer, MTL::ResourceUsageRead );
 pEnc->useResource( _pVertexColorsBuffer, MTL::ResourceUsageRead );
@@ -285,7 +285,7 @@ The renderer must call the `useResource()` method because the shader indirectly 
 
 The vertex shader accesses the vertex buffers indirectly via the `vertexData` argument buffer.
 
-``` other
+``` cpp
 o.position = float4( vertexData->positions[ vertexId ], 1.0 );
 o.color = half3(vertexData->colors[ vertexId ]);
 ```
@@ -302,7 +302,7 @@ Unlike the vertex data that defines the primitive's vertex positions and colors,
 
 To provide this data, the sample defines the `FrameData` structure that contains a single `float` variable.
 
-``` other
+``` cpp
 struct FrameData
 {
     float angle;
@@ -313,7 +313,7 @@ Both the vertex shader written in MSL, and the host code, written in C++, declar
 
 Metal provides a convenient method to pass small amounts of data to shaders via the `setVertexBytes()` method. The `FrameData` structure is small enough that the sample *could* use `setVertexBytes()` to pass it to the vertex shader. However, passing larger amounts of data requires using `MTL::Buffer` objects. To demonstrate passing a large amount of data, the sample passes the `FrameData` structure using a series of  Metal buffers.
 
-``` other
+``` cpp
 for ( int i = 0; i < Renderer::kMaxFramesInFlight; ++i )
 {
     _pFrameData[ i ]= _pDevice->newBuffer( sizeof( FrameData ), MTL::ResourceStorageModeManaged );
@@ -322,7 +322,7 @@ for ( int i = 0; i < Renderer::kMaxFramesInFlight; ++i )
 
 The `buildFrameData()` function creates `kMaxFramesInFlight` or `3` buffers to store three versions of the FrameData structure. The renderer uses multiple versions of these buffers to avoid a data race condition where the CPU writes a new value to the buffer while the GPU simultaneously reads from the buffer.  It cycles through three buffers which allows the CPU to update one buffer while GPU reads from another.
 
-``` other
+``` cpp
 _frame = (_frame + 1) % Renderer::kMaxFramesInFlight;
 MTL::Buffer* pFrameDataBuffer = _pFrameData[ _frame ];
 ```
@@ -331,13 +331,13 @@ The renderer uses a *semaphore* to explicitly synchronize buffer updates. This e
 
 Upon initialization, the renderer creates the semaphore with a value of `kMaxFramesInFlight`.
 
-``` other
+``` cpp
 _semaphore = dispatch_semaphore_create( Renderer::kMaxFramesInFlight );
 ```
 
 At the beginning of each frame, the renderer calls `dispatch_semaphore_wait()`. This forces to CPU to wait if the GPU has not finished reading from the next buffer in the the cycle.
 
-``` other
+``` cpp
 dispatch_semaphore_wait( _semaphore, DISPATCH_TIME_FOREVER );
 ```
 
@@ -354,14 +354,14 @@ Completed handlers are closures that Metal invokes when the GPU completes execut
 
 Once the renderer has a buffer it can safely use, it overwrites the buffer’s contents with a new value. Because these are managed storage buffers, the sample must notify Metal of the content change.
 
-``` other
+``` cpp
 reinterpret_cast< FrameData * >( pFrameDataBuffer->contents() )->angle = (_angle += 0.01f);
 pFrameDataBuffer->didModifyRange( NS::Range::Make( 0, sizeof( FrameData ) ) );
 ```
 
 Finally, to implement the animation, the sample extends the vertex shader to retrieve the angle variable, calculate the rotation matrix, and transform the vertex positions.
 
-``` other
+``` cpp
 float a = frameData->angle;
 float3x3 rotationMatrix = float3x3( sin(a), cos(a), 0.0, cos(a), -sin(a), 0.0, 0.0, 0.0, 1.0 );
 v2f o;
@@ -378,7 +378,7 @@ Issuing a single draw call incurs some amount of overhead. With instancing, Meta
 
 The renderer provides each instance with a unique value for positions and colors.  The renderer's `buildBuffers()` method creates a buffer that holds this data.
 
-``` other
+``` cpp
 for ( size_t i = 0; i < kMaxFramesInFlight; ++i )
 {
     _pInstanceDataBuffer[ i ] = _pDevice->newBuffer( instanceDataSize, MTL::ResourceStorageModeManaged );
@@ -389,7 +389,7 @@ Similar to how the previous sample used the `_pFrameData` variable, this sample 
 
 Each frame, the renderer cycles to the next instance buffer.  It then iterates through each instance, calculating a new position, and updating the values in ``_pInstanceDataBuffer``.
 
-``` other
+``` cpp
 shader_types::InstanceData* pInstanceData = reinterpret_cast< shader_types::InstanceData *>( pInstanceDataBuffer->contents() );
 for ( size_t i = 0; i < kNumInstances; ++i )
 {
@@ -410,7 +410,7 @@ for ( size_t i = 0; i < kNumInstances; ++i )
 
 With these buffers filled with up-to-date instance data, the `draw()` method encodes rendering commands.
 
-``` other
+``` cpp
 pEnc->setVertexBuffer( pInstanceDataBuffer, /* offset */ 0, /* index */ 1 );
 
 //
@@ -427,7 +427,7 @@ The renderer supplies the instance data to the vertex shader with a call to `set
 
 Within the vertex shader, the sample determines what instance each vertex belongs to and retrieves the data specific to its instance.
 
-``` other
+``` cpp
 v2f vertex vertexMain( device const VertexData* vertexData [[buffer(0)]],
                        device const InstanceData* instanceData [[buffer(1)]],
                        uint vertexId [[vertex_id]],
@@ -451,7 +451,7 @@ Metal does not provide any intrinsic functionality to draw 3D objects. Instead, 
 
 First, the sample creates a structure suitable to pass the perspective and world transformation matrices to the GPU.
 
-``` other
+``` cpp
 struct CameraData
 {
     simd::float4x4 perspectiveTransform;
@@ -463,7 +463,7 @@ So far, in previous samples, objects have been two-dimensional. In those samples
 
 The renderer specifies how Metal should execute the depth comparison using a `MTL::DepthStencilState` object.
 
-``` other
+``` cpp
 void Renderer::buildDepthStencilStates()
 {
     MTL::DepthStencilDescriptor* pDsDesc = MTL::DepthStencilDescriptor::alloc()->init();
@@ -480,7 +480,7 @@ As the pipeline processes triangles and generates fragments, it uses the `depthC
 
 Before rendering each frame, the `draw()` method computes the camera's matrices to apply a perspective projection.
 
-``` other
+``` cpp
 MTL::Buffer* pCameraDataBuffer = _pCameraDataBuffer[ _frame ];
 shader_types::CameraData* pCameraData = reinterpret_cast< shader_types::CameraData *>( pCameraDataBuffer->contents() );
 pCameraData->perspectiveTransform = math::makePerspective( 45.f * M_PI / 180.f, 1.f, 0.03f, 500.0f ) ;
@@ -490,13 +490,13 @@ pCameraDataBuffer->didModifyRange( NS::Range::Make( 0, sizeof( shader_types::Cam
 
 The vertex shader multiplies the 3D vertex positions by these matrices to compute a position to output for each vertex.
 
-``` other
+``` cpp
 pos = cameraData.perspectiveTransform * cameraData.worldTransform * pos;
 ```
 
 The `draw()` method sets the depth stencil state and passes the updated camera matrices to the vertex shader.
 
-``` other
+``` cpp
 pEnc->setVertexBuffer( _pVertexDataBuffer, /* offset */ 0, /* index */ 0 );
 pEnc->setVertexBuffer( pInstanceDataBuffer, /* offset */ 0, /* index */ 1 );
 pEnc->setVertexBuffer( pCameraDataBuffer, /* offset */ 0, /* index */ 2 );
@@ -504,7 +504,7 @@ pEnc->setVertexBuffer( pCameraDataBuffer, /* offset */ 0, /* index */ 2 );
 
 The `draw()` method also sets the polygon winding order and enables back face culling. This is an important optimization which allows Metal to avoid drawing the interior geometry of 3D objects.
 
-``` other
+``` cpp
 pEnc->setCullMode( MTL::CullModeBack );
 pEnc->setFrontFacingWinding( MTL::Winding::WindingCounterClockwise );
 ```
@@ -517,7 +517,7 @@ The `06-Lighting` sample builds on the previous one to adding the illusion of li
 
 The sample declares the `VertexData` structure with an additional vertex attribute, called a *normal*.  The equations to produce lighting effects use this normal attribute to determine the amount of light to apply. Both the host C++ code and GPU MSL code declare this structure so their memory layout match in both languages.
 
-``` other
+``` cpp
 struct VertexData
 {
     simd::float3 position;
@@ -527,7 +527,7 @@ struct VertexData
 
 The renderer's `buildBuffers()` method uses this `VertexData` structure to define the vertices a cube with the `verts` array.
 
-``` other
+``` cpp
 shader_types::VertexData verts[] = {
     //   Positions          Normals
     { { -s, -s, +s }, { 0.f,  0.f,  1.f } },
@@ -564,7 +564,7 @@ shader_types::VertexData verts[] = {
 
 The sample extends the interface between the vertex and the fragment stages in MSL. Metal interpolates the normal attribute across the surface of each triangle, providing each fragment with its own interpolated normal value.
 
-``` other
+``` cpp
 struct v2f
 {
     float4 position [[position]];
@@ -575,7 +575,7 @@ struct v2f
 
 The fragment shader uses the interpolated normal to calculate the lit color of the fragment using a simple Lambert illumination model.
 
-``` other
+``` cpp
 half4 fragment fragmentMain( v2f in [[stage_in]] )
 {
     // assume light coming from (front-top-right)
@@ -601,7 +601,7 @@ To create the image and make it available to the GPU, the sample introduces the 
 
 To create a texture in Metal, use the `MTL::TextureDescriptor` class. The descriptor provides information about the texture to create such as `width` and `height` of the image, its `pixelFormat`, `textureType`, `storageMode`, and `usage`. The renderer creates a texture from the `MTL::Device` object using this descriptor.
 
-``` other
+``` cpp
 MTL::TextureDescriptor* pTextureDesc = MTL::TextureDescriptor::alloc()->init();
 pTextureDesc->setWidth( tw );
 pTextureDesc->setHeight( th );
@@ -618,13 +618,13 @@ This creates the object and allocates memory for the image. The renderer must st
 
 Typically, an application will fill the texture’s memory with data from an image file. Metal doesn't provide an API to load image data from files so apps must use custom code or an API which handles images such MetalKit or Image I/O. Instead of relying on such an API, this sample implements a simple algorithm to generate a checkerboard pattern. It allocates a temporary system memory buffer using `alloca` and then generates the image.
 
-``` other
+``` cpp
 uint8_t* pTextureData = (uint8_t *)alloca( tw * th * 4 );
 ```
 
 Once the renderer has filled the temporary allocation, it copies the data to the texture object using the `replaceRegion()` method.
 
-``` other
+``` cpp
 _pTexture->replaceRegion( MTL::Region( 0, 0, 0, tw, th, 1 ), 0, pTextureData, tw * 4 );
 ```
 
@@ -634,7 +634,7 @@ Once the renderer creates the texture, it must establish how Metal should place 
 
 The sample extends the `VertexData` structure to include a texture coordinate alongside vertex positions and normals.
 
-``` other
+``` cpp
 struct VertexData
 {
     simd::float3 position;
@@ -645,7 +645,7 @@ struct VertexData
 
 The `buildBuffers()` method specifies a texture coordinate for each vertex in the array.
 
-``` other
+``` cpp
 shader_types::VertexData verts[] = {
     //                                         Texture
     //   Positions           Normals         Coordinates
@@ -683,7 +683,7 @@ shader_types::VertexData verts[] = {
 
 In the `draw()` function, the renderer sets the texture using the encoder, making the image available to the fragment shader.
 
-``` other
+``` cpp
 pEnc->setFragmentTexture( _pTexture, /* index */ 0 );
 ```
 
@@ -691,7 +691,7 @@ The sample also makes a few changes to the shaders.
 
 First, the shader's `v2f` structure includes a texture coordinate to interpolate when passed from the vertex shader to the fragment shader.
 
-``` other
+``` cpp
 struct v2f
 {
     float4 position [[position]];
@@ -703,13 +703,13 @@ struct v2f
 
 Second, the fragment shader adds a parameter for the texture object.
 
-``` other
+``` cpp
 half4 fragment fragmentMain( v2f in [[stage_in]], texture2d< half, access::sample > tex [[texture(0)]] )
 ```
 
 Finally, the fragment shader uses the interpolated texture coordinate to *sample* from the texture.
 
-``` other
+``` cpp
 constexpr sampler s( address::repeat, filter::linear );
 half3 texel = tex.sample( s, in.texcoord ).rgb;
 ```
@@ -722,7 +722,7 @@ The `08-compute` sample builds on the previous samples by leveraging the high ba
 
 To generate the texture on the GPU, the sample adds a `kernel` function written in MSL. This compute kernel accepts a texture with `access::write` as a parameter and calculates a color value to write to the texture. The `index` parameter is a 2D vector that the identifies the thread executed by the GPU. This kernel kernel uses `index` to determine x and y coordinate of the texel to write data to. The `gridSize` specifies the total size of the workload.
 
-``` other
+``` cpp
 kernel void mandelbrot_set(texture2d< half, access::write > tex [[texture(0)]],
                            uint2 index [[thread_position_in_grid]],
                            uint2 gridSize [[threads_per_grid]])
@@ -730,13 +730,13 @@ kernel void mandelbrot_set(texture2d< half, access::write > tex [[texture(0)]],
 
 Unlike fragment shaders, compute kernels do not output their results to render attachments. Instead, they can directly output texel data with the texture's `write()` method.
 
-``` other
+``` cpp
 tex.write(half4(color, color, color, 1.0), index, 0);
 ```
 
 The renderer uses the kernel to create a compute pipeline.
 
-``` other
+``` cpp
 MTL::Function* pMandelbrotFn = pComputeLibrary->newFunction( NS::String::string("mandelbrot_set", NS::UTF8StringEncoding) );
 _pComputePSO = _pDevice->newComputePipelineState( pMandelbrotFn, &pError );
 ```
@@ -745,7 +745,7 @@ Compute pipelines are more simple to build than render pipelines; they only cont
 
 In the previous sample, the `buildTextures()` method generates image data using the CPU and fills the texture's memory with the `replaceRegion()` method. In this sample, the renderer calls the `generateMandelbrotTexture()` method, which uses the GPU to fill the texture's memory. The  `generateMandelbrotTexture()` method creates a `MTL::ComputeCommandEncoder`. With this encoder, it sets the compute pipeline, specifies the texture to pass to the kernel, and, finally, executes the kernel with the `dispatchThreads()` method.
 
-``` other
+``` cpp
 MTL::ComputeCommandEncoder* pComputeEncoder = pCommandBuffer->computeCommandEncoder();
 
 pComputeEncoder->setComputePipelineState( _pComputePSO );
@@ -771,7 +771,7 @@ The `09-compute-to-render` sample augments the previous one to regenerate the te
 
 To perform the texture generation in each frame, the sample simply encodes commands with the `generateMandelbrotTeture()` method to the same command buffer used for subsequent rendering commands.
 
-``` other
+``` cpp
 // Update texture:
 
 generateMandelbrotTexture( pCmd );
@@ -792,7 +792,7 @@ The `10-frame-debugging` sample builds on the previous one by adding functionali
 
 This sample triggers a capture under two different conditions: via a menu item, or after a short timeout. In both cases, the sample uses a `MTL::CaptureManager` object to begin the capture from within the renderer's `triggerCapture()` method. The method begins by obtaining the global capture manager and checking if the device supports capturing Metal commands:
 
-``` other
+``` cpp
 MTL::CaptureManager* pCaptureManager = MTL::CaptureManager::sharedCaptureManager();
 success = pCaptureManager->supportsDestination( MTL::CaptureDestinationGPUTraceDocument );
 ```
@@ -814,7 +814,7 @@ sectcreate __TEXT __info_plist ./10-frame-debugging/Info.plist
 
 Next, the renderer creates a `MTL::CaptureDescriptor` object. Here, it specifies that Metal should write the capture data to a file and designates where the file should appear.  It also specifies that Metal should capture all commands executed by the device.   
 
-``` other
+``` cpp
 MTL::CaptureDescriptor* pCaptureDescriptor = MTL::CaptureDescriptor::alloc()->init();
 
 pCaptureDescriptor->setDestination( MTL::CaptureDestinationGPUTraceDocument );
@@ -826,13 +826,13 @@ pCaptureDescriptor->setCaptureObject( _pDevice );
 
 The renderer calls the `startCapture()` method to immediately begin capturing commands.
 
-``` other
+``` cpp
 success = pCaptureManager->startCapture( pCaptureDescriptor, &pError );
 ```
 
 Until the renderer calls the `stopCapture()` method, Metal records all commands executed by the device.
 
-``` other
+``` cpp
 MTL::CaptureManager* pCaptureManager = MTL::CaptureManager::sharedCaptureManager();
 pCaptureManager->stopCapture();
 ```
