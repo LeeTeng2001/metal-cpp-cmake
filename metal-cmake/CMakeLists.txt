@@ -1,6 +1,6 @@
 # Library definition
 add_library(METAL_CPP
-        ${CMAKE_CURRENT_SOURCE_DIR}/defination.cpp
+        ${CMAKE_CURRENT_SOURCE_DIR}/definition.cpp
         )
 
 # Metal cpp headers
