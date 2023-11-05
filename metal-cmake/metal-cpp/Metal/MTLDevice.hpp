@@ -2,7 +2,7 @@
 //
 // Metal/MTLDevice.hpp
 //
-// Copyright 2020-2021 Apple Inc.
+// Copyright 2020-2023 Apple Inc.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -37,6 +37,14 @@
 
 namespace MTL
 {
+_MTL_ENUM(NS::Integer, IOCompressionMethod) {
+    IOCompressionMethodZlib = 0,
+    IOCompressionMethodLZFSE = 1,
+    IOCompressionMethodLZ4 = 2,
+    IOCompressionMethodLZMA = 3,
+    IOCompressionMethodLZBitmap = 4,
+};
+
 _MTL_ENUM(NS::UInteger, FeatureSet) {
     FeatureSet_iOS_GPUFamily1_v1 = 0,
     FeatureSet_iOS_GPUFamily2_v1 = 1,
@@ -93,6 +101,7 @@ _MTL_ENUM(NS::Integer, GPUFamily) {
     GPUFamilyCommon3 = 3003,
     GPUFamilyMacCatalyst1 = 4001,
     GPUFamilyMacCatalyst2 = 4002,
+    GPUFamilyMetal3 = 5001,
 };
 
 _MTL_ENUM(NS::UInteger, DeviceLocation) {
@@ -123,6 +132,12 @@ _MTL_ENUM(NS::UInteger, ArgumentBuffersTier) {
 _MTL_ENUM(NS::UInteger, SparseTextureRegionAlignmentMode) {
     SparseTextureRegionAlignmentModeOutward = 0,
     SparseTextureRegionAlignmentModeInward = 1,
+};
+
+_MTL_ENUM(NS::Integer, SparsePageSize) {
+    SparsePageSize16 = 101,
+    SparsePageSize64 = 102,
+    SparsePageSize256 = 103,
 };
 
 struct AccelerationStructureSizes
@@ -164,8 +179,8 @@ public:
     NS::UInteger                     arrayLength() const;
     void                             setArrayLength(NS::UInteger arrayLength);
 
-    MTL::ArgumentAccess              access() const;
-    void                             setAccess(MTL::ArgumentAccess access);
+    MTL::BindingAccess               access() const;
+    void                             setAccess(MTL::BindingAccess access);
 
     MTL::TextureType                 textureType() const;
     void                             setTextureType(MTL::TextureType textureType);
@@ -174,13 +189,21 @@ public:
     void                             setConstantBlockAlignment(NS::UInteger constantBlockAlignment);
 };
 
+class Architecture : public NS::Copying<Architecture>
+{
+public:
+    static class Architecture* alloc();
+
+    class Architecture*        init();
+
+    NS::String*                name() const;
+};
+
 using DeviceNotificationName = NS::String*;
-
 _MTL_CONST(DeviceNotificationName, DeviceWasAddedNotification);
-
 _MTL_CONST(DeviceNotificationName, DeviceRemovalRequestedNotification);
-
 _MTL_CONST(DeviceNotificationName, DeviceWasRemovedNotification);
+_MTL_CONST(NS::ErrorUserInfoKey, CommandBufferEncoderInfoErrorKey);
 
 using DeviceNotificationHandlerBlock = void (^)(class Device* pDevice, DeviceNotificationName notifyName);
 
@@ -247,6 +270,8 @@ public:
 
     uint64_t                        registryID() const;
 
+    class Architecture*             architecture() const;
+
     MTL::Size                       maxThreadsPerThreadgroup() const;
 
     bool                            lowPower() const;
@@ -303,7 +328,7 @@ public:
 
     class Buffer*                   newBuffer(const void* pointer, NS::UInteger length, MTL::ResourceOptions options);
 
-    class Buffer*                   newBuffer(const void* pointer, NS::UInteger length, MTL::ResourceOptions options, const void (^deallocator)(void*, NS::UInteger));
+    class Buffer*                   newBuffer(const void* pointer, NS::UInteger length, MTL::ResourceOptions options, void (^deallocator)(void*, NS::UInteger));
 
     class DepthStencilState*        newDepthStencilState(const class DepthStencilDescriptor* descriptor);
 
@@ -371,6 +396,10 @@ public:
 
     void                            newRenderPipelineState(const class TileRenderPipelineDescriptor* descriptor, MTL::PipelineOption options, const MTL::NewRenderPipelineStateWithReflectionCompletionHandler completionHandler);
 
+    class RenderPipelineState*      newRenderPipelineState(const class MeshRenderPipelineDescriptor* descriptor, MTL::PipelineOption options, const MTL::AutoreleasedRenderPipelineReflection* reflection, NS::Error** error);
+
+    void                            newRenderPipelineState(const class MeshRenderPipelineDescriptor* descriptor, MTL::PipelineOption options, const MTL::NewRenderPipelineStateWithReflectionCompletionHandler completionHandler);
+
     NS::UInteger                    maxThreadgroupMemoryLength() const;
 
     NS::UInteger                    maxArgumentBufferSamplerCount() const;
@@ -399,6 +428,16 @@ public:
 
     uint32_t                        peerCount() const;
 
+    class IOFileHandle*             newIOHandle(const NS::URL* url, NS::Error** error);
+
+    class IOCommandQueue*           newIOCommandQueue(const class IOCommandQueueDescriptor* descriptor, NS::Error** error);
+
+    class IOFileHandle*             newIOHandle(const NS::URL* url, MTL::IOCompressionMethod compressionMethod, NS::Error** error);
+
+    class IOFileHandle*             newIOFileHandle(const NS::URL* url, NS::Error** error);
+
+    class IOFileHandle*             newIOFileHandle(const NS::URL* url, MTL::IOCompressionMethod compressionMethod, NS::Error** error);
+
     MTL::Size                       sparseTileSize(MTL::TextureType textureType, MTL::PixelFormat pixelFormat, NS::UInteger sampleCount);
 
     NS::UInteger                    sparseTileSizeInBytes() const;
@@ -407,6 +446,10 @@ public:
 
     void                            convertSparseTileRegions(const MTL::Region* tileRegions, MTL::Region* pixelRegions, MTL::Size tileSize, NS::UInteger numRegions);
 
+    NS::UInteger                    sparseTileSizeInBytes(MTL::SparsePageSize sparsePageSize);
+
+    MTL::Size                       sparseTileSize(MTL::TextureType textureType, MTL::PixelFormat pixelFormat, NS::UInteger sampleCount, MTL::SparsePageSize sparsePageSize);
+
     NS::UInteger                    maxBufferLength() const;
 
     NS::Array*                      counterSets() const;
@@ -414,6 +457,8 @@ public:
     class CounterSampleBuffer*      newCounterSampleBuffer(const class CounterSampleBufferDescriptor* descriptor, NS::Error** error);
 
     void                            sampleTimestamps(MTL::Timestamp* cpuTimestamp, MTL::Timestamp* gpuTimestamp);
+
+    class ArgumentEncoder*          newArgumentEncoder(const class BufferBinding* bufferBinding);
 
     bool                            supportsCounterSampling(MTL::CounterSamplingPoint samplingPoint);
 
@@ -437,6 +482,10 @@ public:
 
     class AccelerationStructure*    newAccelerationStructure(const class AccelerationStructureDescriptor* descriptor);
 
+    MTL::SizeAndAlign               heapAccelerationStructureSizeAndAlign(NS::UInteger size);
+
+    MTL::SizeAndAlign               heapAccelerationStructureSizeAndAlign(const class AccelerationStructureDescriptor* descriptor);
+
     bool                            supportsFunctionPointers() const;
 
     bool                            supportsFunctionPointersFromRender() const;
@@ -444,6 +493,11 @@ public:
     bool                            supportsRaytracingFromRender() const;
 
     bool                            supportsPrimitiveMotionBlur() const;
+
+    bool                            shouldMaximizeConcurrentCompilation() const;
+    void                            setShouldMaximizeConcurrentCompilation(bool shouldMaximizeConcurrentCompilation);
+
+    NS::UInteger                    maximumConcurrentCompilationTaskCount() const;
 };
 
 }
@@ -500,12 +554,12 @@ _MTL_INLINE void MTL::ArgumentDescriptor::setArrayLength(NS::UInteger arrayLengt
 }
 
 // property: access
-_MTL_INLINE MTL::ArgumentAccess MTL::ArgumentDescriptor::access() const
+_MTL_INLINE MTL::BindingAccess MTL::ArgumentDescriptor::access() const
 {
-    return Object::sendMessage<MTL::ArgumentAccess>(this, _MTL_PRIVATE_SEL(access));
+    return Object::sendMessage<MTL::BindingAccess>(this, _MTL_PRIVATE_SEL(access));
 }
 
-_MTL_INLINE void MTL::ArgumentDescriptor::setAccess(MTL::ArgumentAccess access)
+_MTL_INLINE void MTL::ArgumentDescriptor::setAccess(MTL::BindingAccess access)
 {
     Object::sendMessage<void>(this, _MTL_PRIVATE_SEL(setAccess_), access);
 }
@@ -532,6 +586,29 @@ _MTL_INLINE void MTL::ArgumentDescriptor::setConstantBlockAlignment(NS::UInteger
     Object::sendMessage<void>(this, _MTL_PRIVATE_SEL(setConstantBlockAlignment_), constantBlockAlignment);
 }
 
+// static method: alloc
+_MTL_INLINE MTL::Architecture* MTL::Architecture::alloc()
+{
+    return NS::Object::alloc<MTL::Architecture>(_MTL_PRIVATE_CLS(MTLArchitecture));
+}
+
+// method: init
+_MTL_INLINE MTL::Architecture* MTL::Architecture::init()
+{
+    return NS::Object::init<MTL::Architecture>();
+}
+
+// property: name
+_MTL_INLINE NS::String* MTL::Architecture::name() const
+{
+    return Object::sendMessage<NS::String*>(this, _MTL_PRIVATE_SEL(name));
+}
+
+_MTL_PRIVATE_DEF_WEAK_CONST(MTL::DeviceNotificationName, DeviceWasAddedNotification);
+_MTL_PRIVATE_DEF_WEAK_CONST(MTL::DeviceNotificationName, DeviceRemovalRequestedNotification);
+_MTL_PRIVATE_DEF_WEAK_CONST(MTL::DeviceNotificationName, DeviceWasRemovedNotification);
+_MTL_PRIVATE_DEF_CONST(NS::ErrorUserInfoKey, CommandBufferEncoderInfoErrorKey);
+
 #if defined(MTL_PRIVATE_IMPLEMENTATION)
 
 extern "C" MTL::Device* MTLCreateSystemDefaultDevice();
@@ -544,12 +621,12 @@ extern "C" void         MTLRemoveDeviceObserver(const NS::Object*);
 
 #include <TargetConditionals.h>
 
-MTL::Device* MTL::CreateSystemDefaultDevice()
+_NS_EXPORT MTL::Device* MTL::CreateSystemDefaultDevice()
 {
     return ::MTLCreateSystemDefaultDevice();
 }
 
-NS::Array* MTL::CopyAllDevices()
+_NS_EXPORT NS::Array* MTL::CopyAllDevices()
 {
 #if TARGET_OS_OSX
     return ::MTLCopyAllDevices();
@@ -558,7 +635,7 @@ NS::Array* MTL::CopyAllDevices()
 #endif // TARGET_OS_OSX
 }
 
-NS::Array* MTL::CopyAllDevicesWithObserver(NS::Object** pOutObserver, DeviceNotificationHandlerBlock handler)
+_NS_EXPORT NS::Array* MTL::CopyAllDevicesWithObserver(NS::Object** pOutObserver, DeviceNotificationHandlerBlock handler)
 {
 #if TARGET_OS_OSX
     return ::MTLCopyAllDevicesWithObserver(pOutObserver, handler);
@@ -570,14 +647,14 @@ NS::Array* MTL::CopyAllDevicesWithObserver(NS::Object** pOutObserver, DeviceNoti
 #endif // TARGET_OS_OSX
 }
 
-NS::Array* MTL::CopyAllDevicesWithObserver(NS::Object** pOutObserver, const DeviceNotificationHandlerFunction& handler)
+_NS_EXPORT NS::Array* MTL::CopyAllDevicesWithObserver(NS::Object** pOutObserver, const DeviceNotificationHandlerFunction& handler)
 {
     __block DeviceNotificationHandlerFunction function = handler;
 
     return CopyAllDevicesWithObserver(pOutObserver, ^(Device* pDevice, DeviceNotificationName pNotificationName) { function(pDevice, pNotificationName); });
 }
 
-void MTL::RemoveDeviceObserver(const NS::Object* pObserver)
+_NS_EXPORT void MTL::RemoveDeviceObserver(const NS::Object* pObserver)
 {
 #if TARGET_OS_OSX
     ::MTLRemoveDeviceObserver(pObserver);
@@ -657,6 +734,12 @@ _MTL_INLINE NS::String* MTL::Device::name() const
 _MTL_INLINE uint64_t MTL::Device::registryID() const
 {
     return Object::sendMessage<uint64_t>(this, _MTL_PRIVATE_SEL(registryID));
+}
+
+// property: architecture
+_MTL_INLINE MTL::Architecture* MTL::Device::architecture() const
+{
+    return Object::sendMessage<MTL::Architecture*>(this, _MTL_PRIVATE_SEL(architecture));
 }
 
 // property: maxThreadsPerThreadgroup
@@ -828,7 +911,7 @@ _MTL_INLINE MTL::Buffer* MTL::Device::newBuffer(const void* pointer, NS::UIntege
 }
 
 // method: newBufferWithBytesNoCopy:length:options:deallocator:
-_MTL_INLINE MTL::Buffer* MTL::Device::newBuffer(const void* pointer, NS::UInteger length, MTL::ResourceOptions options, const void (^deallocator)(void*, NS::UInteger))
+_MTL_INLINE MTL::Buffer* MTL::Device::newBuffer(const void* pointer, NS::UInteger length, MTL::ResourceOptions options, void (^deallocator)(void*, NS::UInteger))
 {
     return Object::sendMessage<MTL::Buffer*>(this, _MTL_PRIVATE_SEL(newBufferWithBytesNoCopy_length_options_deallocator_), pointer, length, options, deallocator);
 }
@@ -1031,6 +1114,18 @@ _MTL_INLINE void MTL::Device::newRenderPipelineState(const MTL::TileRenderPipeli
     Object::sendMessage<void>(this, _MTL_PRIVATE_SEL(newRenderPipelineStateWithTileDescriptor_options_completionHandler_), descriptor, options, completionHandler);
 }
 
+// method: newRenderPipelineStateWithMeshDescriptor:options:reflection:error:
+_MTL_INLINE MTL::RenderPipelineState* MTL::Device::newRenderPipelineState(const MTL::MeshRenderPipelineDescriptor* descriptor, MTL::PipelineOption options, const MTL::AutoreleasedRenderPipelineReflection* reflection, NS::Error** error)
+{
+    return Object::sendMessage<MTL::RenderPipelineState*>(this, _MTL_PRIVATE_SEL(newRenderPipelineStateWithMeshDescriptor_options_reflection_error_), descriptor, options, reflection, error);
+}
+
+// method: newRenderPipelineStateWithMeshDescriptor:options:completionHandler:
+_MTL_INLINE void MTL::Device::newRenderPipelineState(const MTL::MeshRenderPipelineDescriptor* descriptor, MTL::PipelineOption options, const MTL::NewRenderPipelineStateWithReflectionCompletionHandler completionHandler)
+{
+    Object::sendMessage<void>(this, _MTL_PRIVATE_SEL(newRenderPipelineStateWithMeshDescriptor_options_completionHandler_), descriptor, options, completionHandler);
+}
+
 // property: maxThreadgroupMemoryLength
 _MTL_INLINE NS::UInteger MTL::Device::maxThreadgroupMemoryLength() const
 {
@@ -1115,6 +1210,36 @@ _MTL_INLINE uint32_t MTL::Device::peerCount() const
     return Object::sendMessage<uint32_t>(this, _MTL_PRIVATE_SEL(peerCount));
 }
 
+// method: newIOHandleWithURL:error:
+_MTL_INLINE MTL::IOFileHandle* MTL::Device::newIOHandle(const NS::URL* url, NS::Error** error)
+{
+    return Object::sendMessage<MTL::IOFileHandle*>(this, _MTL_PRIVATE_SEL(newIOHandleWithURL_error_), url, error);
+}
+
+// method: newIOCommandQueueWithDescriptor:error:
+_MTL_INLINE MTL::IOCommandQueue* MTL::Device::newIOCommandQueue(const MTL::IOCommandQueueDescriptor* descriptor, NS::Error** error)
+{
+    return Object::sendMessage<MTL::IOCommandQueue*>(this, _MTL_PRIVATE_SEL(newIOCommandQueueWithDescriptor_error_), descriptor, error);
+}
+
+// method: newIOHandleWithURL:compressionMethod:error:
+_MTL_INLINE MTL::IOFileHandle* MTL::Device::newIOHandle(const NS::URL* url, MTL::IOCompressionMethod compressionMethod, NS::Error** error)
+{
+    return Object::sendMessage<MTL::IOFileHandle*>(this, _MTL_PRIVATE_SEL(newIOHandleWithURL_compressionMethod_error_), url, compressionMethod, error);
+}
+
+// method: newIOFileHandleWithURL:error:
+_MTL_INLINE MTL::IOFileHandle* MTL::Device::newIOFileHandle(const NS::URL* url, NS::Error** error)
+{
+    return Object::sendMessage<MTL::IOFileHandle*>(this, _MTL_PRIVATE_SEL(newIOFileHandleWithURL_error_), url, error);
+}
+
+// method: newIOFileHandleWithURL:compressionMethod:error:
+_MTL_INLINE MTL::IOFileHandle* MTL::Device::newIOFileHandle(const NS::URL* url, MTL::IOCompressionMethod compressionMethod, NS::Error** error)
+{
+    return Object::sendMessage<MTL::IOFileHandle*>(this, _MTL_PRIVATE_SEL(newIOFileHandleWithURL_compressionMethod_error_), url, compressionMethod, error);
+}
+
 // method: sparseTileSizeWithTextureType:pixelFormat:sampleCount:
 _MTL_INLINE MTL::Size MTL::Device::sparseTileSize(MTL::TextureType textureType, MTL::PixelFormat pixelFormat, NS::UInteger sampleCount)
 {
@@ -1139,6 +1264,18 @@ _MTL_INLINE void MTL::Device::convertSparseTileRegions(const MTL::Region* tileRe
     Object::sendMessage<void>(this, _MTL_PRIVATE_SEL(convertSparseTileRegions_toPixelRegions_withTileSize_numRegions_), tileRegions, pixelRegions, tileSize, numRegions);
 }
 
+// method: sparseTileSizeInBytesForSparsePageSize:
+_MTL_INLINE NS::UInteger MTL::Device::sparseTileSizeInBytes(MTL::SparsePageSize sparsePageSize)
+{
+    return Object::sendMessage<NS::UInteger>(this, _MTL_PRIVATE_SEL(sparseTileSizeInBytesForSparsePageSize_), sparsePageSize);
+}
+
+// method: sparseTileSizeWithTextureType:pixelFormat:sampleCount:sparsePageSize:
+_MTL_INLINE MTL::Size MTL::Device::sparseTileSize(MTL::TextureType textureType, MTL::PixelFormat pixelFormat, NS::UInteger sampleCount, MTL::SparsePageSize sparsePageSize)
+{
+    return Object::sendMessage<MTL::Size>(this, _MTL_PRIVATE_SEL(sparseTileSizeWithTextureType_pixelFormat_sampleCount_sparsePageSize_), textureType, pixelFormat, sampleCount, sparsePageSize);
+}
+
 // property: maxBufferLength
 _MTL_INLINE NS::UInteger MTL::Device::maxBufferLength() const
 {
@@ -1161,6 +1298,12 @@ _MTL_INLINE MTL::CounterSampleBuffer* MTL::Device::newCounterSampleBuffer(const 
 _MTL_INLINE void MTL::Device::sampleTimestamps(MTL::Timestamp* cpuTimestamp, MTL::Timestamp* gpuTimestamp)
 {
     Object::sendMessage<void>(this, _MTL_PRIVATE_SEL(sampleTimestamps_gpuTimestamp_), cpuTimestamp, gpuTimestamp);
+}
+
+// method: newArgumentEncoderWithBufferBinding:
+_MTL_INLINE MTL::ArgumentEncoder* MTL::Device::newArgumentEncoder(const MTL::BufferBinding* bufferBinding)
+{
+    return Object::sendMessage<MTL::ArgumentEncoder*>(this, _MTL_PRIVATE_SEL(newArgumentEncoderWithBufferBinding_), bufferBinding);
 }
 
 // method: supportsCounterSampling:
@@ -1229,6 +1372,18 @@ _MTL_INLINE MTL::AccelerationStructure* MTL::Device::newAccelerationStructure(co
     return Object::sendMessage<MTL::AccelerationStructure*>(this, _MTL_PRIVATE_SEL(newAccelerationStructureWithDescriptor_), descriptor);
 }
 
+// method: heapAccelerationStructureSizeAndAlignWithSize:
+_MTL_INLINE MTL::SizeAndAlign MTL::Device::heapAccelerationStructureSizeAndAlign(NS::UInteger size)
+{
+    return Object::sendMessage<MTL::SizeAndAlign>(this, _MTL_PRIVATE_SEL(heapAccelerationStructureSizeAndAlignWithSize_), size);
+}
+
+// method: heapAccelerationStructureSizeAndAlignWithDescriptor:
+_MTL_INLINE MTL::SizeAndAlign MTL::Device::heapAccelerationStructureSizeAndAlign(const MTL::AccelerationStructureDescriptor* descriptor)
+{
+    return Object::sendMessage<MTL::SizeAndAlign>(this, _MTL_PRIVATE_SEL(heapAccelerationStructureSizeAndAlignWithDescriptor_), descriptor);
+}
+
 // property: supportsFunctionPointers
 _MTL_INLINE bool MTL::Device::supportsFunctionPointers() const
 {
@@ -1251,4 +1406,21 @@ _MTL_INLINE bool MTL::Device::supportsRaytracingFromRender() const
 _MTL_INLINE bool MTL::Device::supportsPrimitiveMotionBlur() const
 {
     return Object::sendMessageSafe<bool>(this, _MTL_PRIVATE_SEL(supportsPrimitiveMotionBlur));
+}
+
+// property: shouldMaximizeConcurrentCompilation
+_MTL_INLINE bool MTL::Device::shouldMaximizeConcurrentCompilation() const
+{
+    return Object::sendMessage<bool>(this, _MTL_PRIVATE_SEL(shouldMaximizeConcurrentCompilation));
+}
+
+_MTL_INLINE void MTL::Device::setShouldMaximizeConcurrentCompilation(bool shouldMaximizeConcurrentCompilation)
+{
+    Object::sendMessage<void>(this, _MTL_PRIVATE_SEL(setShouldMaximizeConcurrentCompilation_), shouldMaximizeConcurrentCompilation);
+}
+
+// property: maximumConcurrentCompilationTaskCount
+_MTL_INLINE NS::UInteger MTL::Device::maximumConcurrentCompilationTaskCount() const
+{
+    return Object::sendMessage<NS::UInteger>(this, _MTL_PRIVATE_SEL(maximumConcurrentCompilationTaskCount));
 }

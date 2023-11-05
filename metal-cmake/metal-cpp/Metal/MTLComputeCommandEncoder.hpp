@@ -2,7 +2,7 @@
 //
 // Metal/MTLComputeCommandEncoder.hpp
 //
-// Copyright 2020-2021 Apple Inc.
+// Copyright 2020-2023 Apple Inc.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -26,16 +26,9 @@
 
 #include <Foundation/Foundation.hpp>
 
-#include "MTLBuffer.hpp"
 #include "MTLCommandBuffer.hpp"
 #include "MTLCommandEncoder.hpp"
-#include "MTLHeap.hpp"
-#include "MTLIntersectionFunctionTable.hpp"
-#include "MTLResource.hpp"
-#include "MTLSampler.hpp"
-#include "MTLTexture.hpp"
 #include "MTLTypes.hpp"
-#include "MTLVisibleFunctionTable.hpp"
 
 namespace MTL
 {
@@ -63,29 +56,37 @@ public:
 
     void              setBufferOffset(NS::UInteger offset, NS::UInteger index);
 
-    void              setBuffers(MTL::Buffer* buffers[], const NS::UInteger offsets[], NS::Range range);
+    void              setBuffers(const class Buffer* const buffers[], const NS::UInteger offsets[], NS::Range range);
+
+    void              setBuffer(const class Buffer* buffer, NS::UInteger offset, NS::UInteger stride, NS::UInteger index);
+
+    void              setBuffers(const class Buffer* const buffers[], const NS::UInteger* offsets, const NS::UInteger* strides, NS::Range range);
+
+    void              setBufferOffset(NS::UInteger offset, NS::UInteger stride, NS::UInteger index);
+
+    void              setBytes(const void* bytes, NS::UInteger length, NS::UInteger stride, NS::UInteger index);
 
     void              setVisibleFunctionTable(const class VisibleFunctionTable* visibleFunctionTable, NS::UInteger bufferIndex);
 
-    void              setVisibleFunctionTables(const class VisibleFunctionTable* visibleFunctionTables[], NS::Range range);
+    void              setVisibleFunctionTables(const class VisibleFunctionTable* const visibleFunctionTables[], NS::Range range);
 
     void              setIntersectionFunctionTable(const class IntersectionFunctionTable* intersectionFunctionTable, NS::UInteger bufferIndex);
 
-    void              setIntersectionFunctionTables(const class IntersectionFunctionTable* intersectionFunctionTables[], NS::Range range);
+    void              setIntersectionFunctionTables(const class IntersectionFunctionTable* const intersectionFunctionTables[], NS::Range range);
 
     void              setAccelerationStructure(const class AccelerationStructure* accelerationStructure, NS::UInteger bufferIndex);
 
     void              setTexture(const class Texture* texture, NS::UInteger index);
 
-    void              setTextures(MTL::Texture* textures[], NS::Range range);
+    void              setTextures(const class Texture* const textures[], NS::Range range);
 
     void              setSamplerState(const class SamplerState* sampler, NS::UInteger index);
 
-    void              setSamplerStates(MTL::SamplerState* samplers[], NS::Range range);
+    void              setSamplerStates(const class SamplerState* const samplers[], NS::Range range);
 
     void              setSamplerState(const class SamplerState* sampler, float lodMinClamp, float lodMaxClamp, NS::UInteger index);
 
-    void              setSamplerStates(MTL::SamplerState* samplers[], const float lodMinClamps[], const float lodMaxClamps[], NS::Range range);
+    void              setSamplerStates(const class SamplerState* const samplers[], const float lodMinClamps[], const float lodMaxClamps[], NS::Range range);
 
     void              setThreadgroupMemoryLength(NS::UInteger length, NS::UInteger index);
 
@@ -107,11 +108,11 @@ public:
 
     void              useResource(const class Resource* resource, MTL::ResourceUsage usage);
 
-    void              useResources(MTL::Resource* resources[], NS::UInteger count, MTL::ResourceUsage usage);
+    void              useResources(const class Resource* const resources[], NS::UInteger count, MTL::ResourceUsage usage);
 
     void              useHeap(const class Heap* heap);
 
-    void              useHeaps(MTL::Heap* heaps[], NS::UInteger count);
+    void              useHeaps(const class Heap* const heaps[], NS::UInteger count);
 
     void              executeCommandsInBuffer(const class IndirectCommandBuffer* indirectCommandBuffer, NS::Range executionRange);
 
@@ -119,7 +120,7 @@ public:
 
     void              memoryBarrier(MTL::BarrierScope scope);
 
-    void              memoryBarrier(MTL::Resource* resources[], NS::UInteger count);
+    void              memoryBarrier(const class Resource* const resources[], NS::UInteger count);
 
     void              sampleCountersInBuffer(const class CounterSampleBuffer* sampleBuffer, NS::UInteger sampleIndex, bool barrier);
 };
@@ -157,9 +158,33 @@ _MTL_INLINE void MTL::ComputeCommandEncoder::setBufferOffset(NS::UInteger offset
 }
 
 // method: setBuffers:offsets:withRange:
-_MTL_INLINE void MTL::ComputeCommandEncoder::setBuffers(MTL::Buffer* buffers[], const NS::UInteger offsets[], NS::Range range)
+_MTL_INLINE void MTL::ComputeCommandEncoder::setBuffers(const MTL::Buffer* const buffers[], const NS::UInteger offsets[], NS::Range range)
 {
     Object::sendMessage<void>(this, _MTL_PRIVATE_SEL(setBuffers_offsets_withRange_), buffers, offsets, range);
+}
+
+// method: setBuffer:offset:attributeStride:atIndex:
+_MTL_INLINE void MTL::ComputeCommandEncoder::setBuffer(const MTL::Buffer* buffer, NS::UInteger offset, NS::UInteger stride, NS::UInteger index)
+{
+    Object::sendMessage<void>(this, _MTL_PRIVATE_SEL(setBuffer_offset_attributeStride_atIndex_), buffer, offset, stride, index);
+}
+
+// method: setBuffers:offsets:attributeStrides:withRange:
+_MTL_INLINE void MTL::ComputeCommandEncoder::setBuffers(const MTL::Buffer* const buffers[], const NS::UInteger* offsets, const NS::UInteger* strides, NS::Range range)
+{
+    Object::sendMessage<void>(this, _MTL_PRIVATE_SEL(setBuffers_offsets_attributeStrides_withRange_), buffers, offsets, strides, range);
+}
+
+// method: setBufferOffset:attributeStride:atIndex:
+_MTL_INLINE void MTL::ComputeCommandEncoder::setBufferOffset(NS::UInteger offset, NS::UInteger stride, NS::UInteger index)
+{
+    Object::sendMessage<void>(this, _MTL_PRIVATE_SEL(setBufferOffset_attributeStride_atIndex_), offset, stride, index);
+}
+
+// method: setBytes:length:attributeStride:atIndex:
+_MTL_INLINE void MTL::ComputeCommandEncoder::setBytes(const void* bytes, NS::UInteger length, NS::UInteger stride, NS::UInteger index)
+{
+    Object::sendMessage<void>(this, _MTL_PRIVATE_SEL(setBytes_length_attributeStride_atIndex_), bytes, length, stride, index);
 }
 
 // method: setVisibleFunctionTable:atBufferIndex:
@@ -169,7 +194,7 @@ _MTL_INLINE void MTL::ComputeCommandEncoder::setVisibleFunctionTable(const MTL::
 }
 
 // method: setVisibleFunctionTables:withBufferRange:
-_MTL_INLINE void MTL::ComputeCommandEncoder::setVisibleFunctionTables(const MTL::VisibleFunctionTable* visibleFunctionTables[], NS::Range range)
+_MTL_INLINE void MTL::ComputeCommandEncoder::setVisibleFunctionTables(const MTL::VisibleFunctionTable* const visibleFunctionTables[], NS::Range range)
 {
     Object::sendMessage<void>(this, _MTL_PRIVATE_SEL(setVisibleFunctionTables_withBufferRange_), visibleFunctionTables, range);
 }
@@ -181,7 +206,7 @@ _MTL_INLINE void MTL::ComputeCommandEncoder::setIntersectionFunctionTable(const 
 }
 
 // method: setIntersectionFunctionTables:withBufferRange:
-_MTL_INLINE void MTL::ComputeCommandEncoder::setIntersectionFunctionTables(const MTL::IntersectionFunctionTable* intersectionFunctionTables[], NS::Range range)
+_MTL_INLINE void MTL::ComputeCommandEncoder::setIntersectionFunctionTables(const MTL::IntersectionFunctionTable* const intersectionFunctionTables[], NS::Range range)
 {
     Object::sendMessage<void>(this, _MTL_PRIVATE_SEL(setIntersectionFunctionTables_withBufferRange_), intersectionFunctionTables, range);
 }
@@ -199,7 +224,7 @@ _MTL_INLINE void MTL::ComputeCommandEncoder::setTexture(const MTL::Texture* text
 }
 
 // method: setTextures:withRange:
-_MTL_INLINE void MTL::ComputeCommandEncoder::setTextures(MTL::Texture* textures[], NS::Range range)
+_MTL_INLINE void MTL::ComputeCommandEncoder::setTextures(const MTL::Texture* const textures[], NS::Range range)
 {
     Object::sendMessage<void>(this, _MTL_PRIVATE_SEL(setTextures_withRange_), textures, range);
 }
@@ -211,7 +236,7 @@ _MTL_INLINE void MTL::ComputeCommandEncoder::setSamplerState(const MTL::SamplerS
 }
 
 // method: setSamplerStates:withRange:
-_MTL_INLINE void MTL::ComputeCommandEncoder::setSamplerStates(MTL::SamplerState* samplers[], NS::Range range)
+_MTL_INLINE void MTL::ComputeCommandEncoder::setSamplerStates(const MTL::SamplerState* const samplers[], NS::Range range)
 {
     Object::sendMessage<void>(this, _MTL_PRIVATE_SEL(setSamplerStates_withRange_), samplers, range);
 }
@@ -223,7 +248,7 @@ _MTL_INLINE void MTL::ComputeCommandEncoder::setSamplerState(const MTL::SamplerS
 }
 
 // method: setSamplerStates:lodMinClamps:lodMaxClamps:withRange:
-_MTL_INLINE void MTL::ComputeCommandEncoder::setSamplerStates(MTL::SamplerState* samplers[], const float lodMinClamps[], const float lodMaxClamps[], NS::Range range)
+_MTL_INLINE void MTL::ComputeCommandEncoder::setSamplerStates(const MTL::SamplerState* const samplers[], const float lodMinClamps[], const float lodMaxClamps[], NS::Range range)
 {
     Object::sendMessage<void>(this, _MTL_PRIVATE_SEL(setSamplerStates_lodMinClamps_lodMaxClamps_withRange_), samplers, lodMinClamps, lodMaxClamps, range);
 }
@@ -289,7 +314,7 @@ _MTL_INLINE void MTL::ComputeCommandEncoder::useResource(const MTL::Resource* re
 }
 
 // method: useResources:count:usage:
-_MTL_INLINE void MTL::ComputeCommandEncoder::useResources(MTL::Resource* resources[], NS::UInteger count, MTL::ResourceUsage usage)
+_MTL_INLINE void MTL::ComputeCommandEncoder::useResources(const MTL::Resource* const resources[], NS::UInteger count, MTL::ResourceUsage usage)
 {
     Object::sendMessage<void>(this, _MTL_PRIVATE_SEL(useResources_count_usage_), resources, count, usage);
 }
@@ -301,7 +326,7 @@ _MTL_INLINE void MTL::ComputeCommandEncoder::useHeap(const MTL::Heap* heap)
 }
 
 // method: useHeaps:count:
-_MTL_INLINE void MTL::ComputeCommandEncoder::useHeaps(MTL::Heap* heaps[], NS::UInteger count)
+_MTL_INLINE void MTL::ComputeCommandEncoder::useHeaps(const MTL::Heap* const heaps[], NS::UInteger count)
 {
     Object::sendMessage<void>(this, _MTL_PRIVATE_SEL(useHeaps_count_), heaps, count);
 }
@@ -325,7 +350,7 @@ _MTL_INLINE void MTL::ComputeCommandEncoder::memoryBarrier(MTL::BarrierScope sco
 }
 
 // method: memoryBarrierWithResources:count:
-_MTL_INLINE void MTL::ComputeCommandEncoder::memoryBarrier(MTL::Resource* resources[], NS::UInteger count)
+_MTL_INLINE void MTL::ComputeCommandEncoder::memoryBarrier(const MTL::Resource* const resources[], NS::UInteger count)
 {
     Object::sendMessage<void>(this, _MTL_PRIVATE_SEL(memoryBarrierWithResources_count_), resources, count);
 }
