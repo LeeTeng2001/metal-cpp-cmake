@@ -786,6 +786,7 @@ void Renderer::draw( MTK::View* pView )
     using simd::float3;
     using simd::float4;
     using simd::float4x4;
+    using NS::StringEncoding::UTF8StringEncoding;
 
     NS::AutoreleasePool* pPool = NS::AutoreleasePool::alloc()->init();
 
@@ -900,7 +901,7 @@ void Renderer::draw( MTK::View* pView )
         MTL::CaptureManager* pCaptureManager = MTL::CaptureManager::sharedCaptureManager();
         pCaptureManager->stopCapture();
 
-        NS::String* pOpenCmd = NS::MakeConstantString( "open " )->stringByAppendingString( _pTraceSaveFilePath );
+        NS::String* pOpenCmd = NS::String::string( "open ", UTF8StringEncoding )->stringByAppendingString( _pTraceSaveFilePath );
         system( pOpenCmd->utf8String() );
 
         Renderer::beginCapture = false;
