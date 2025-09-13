@@ -368,7 +368,7 @@ void Renderer::buildBuffers()
     _pVertexDataBuffer->didModifyRange( NS::Range::Make( 0, _pVertexDataBuffer->length() ) );
     _pIndexBuffer->didModifyRange( NS::Range::Make( 0, _pIndexBuffer->length() ) );
 
-    const size_t instanceDataSize = kMaxFramesInFlight * kNumInstances * sizeof( shader_types::InstanceData );
+    const size_t instanceDataSize = kNumInstances * sizeof( shader_types::InstanceData );
     for ( size_t i = 0; i < kMaxFramesInFlight; ++i )
     {
         _pInstanceDataBuffer[ i ] = _pDevice->newBuffer( instanceDataSize, MTL::ResourceStorageModeManaged );
